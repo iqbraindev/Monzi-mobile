@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import {
-  Alert,
   Animated,
   Modal,
   Pressable,
@@ -9,18 +8,19 @@ import {
   View,
 } from "react-native";
 
+import { PhoneIcon, SpeakerIcon } from "@/components/ActionIcons";
 import { AgentAvatarFull } from "@/components/AgentAvatarFull";
-import type { VoiceAudioOption } from "@/hooks/use-voice-audio-output";
+import {
+  CircularActionButton,
+} from "@/components/CircularActionButton";
 import { formatCallDuration } from "@/lib/format-call-duration";
 import { theme } from "@/lib/config";
 import type { Agent } from "@/lib/types";
-import {
-  VOICE_AUDIO_ROUTE_LABELS,
-  type VoiceAudioRouteId,
-} from "@/lib/voice-audio-output";
+import type { VoiceAudioRouteId } from "@/lib/voice-audio-output";
 import { callStatusLabel, type VoiceSessionState } from "@/lib/voice-types";
 
 const HANGUP_RED = "#F25C54";
+const IOS_BLUE = "#0A84FF";
 const BAR_DELAYS = [0, 120, 240, 120, 0];
 
 interface VoiceCallOverlayProps {
@@ -29,38 +29,10 @@ interface VoiceCallOverlayProps {
   error: string | null;
   elapsedSeconds: number;
   audioRoute: VoiceAudioRouteId;
-  activeAudioDeviceId: string | null;
-  audioOptions: VoiceAudioOption[];
   audioLoading?: boolean;
-  onSelectAudioDevice: (deviceId: string) => void;
-  onRefreshAudioOptions: () => void;
+  onSelectAudioRoute: (route: VoiceAudioRouteId) => void;
   onEndCall: () => void;
   onRetry: () => void;
-}
-
-function showAudioRoutePicker(
-  options: VoiceAudioOption[],
-  activeDeviceId: string | null,
-  onSelect: (deviceId: string) => void
-) {
-  if (options.length === 0) {
-    Alert.alert(
-      "Audio output",
-      "Audio routing is not ready yet. Try again in a moment."
-    );
-    return;
-  }
-
-  Alert.alert("Audio output", "Choose where to listen and speak", [
-    ...options.map((option) => ({
-      text:
-        option.deviceId === activeDeviceId
-          ? `${option.label} ✓`
-          : option.label,
-      onPress: () => onSelect(option.deviceId),
-    })),
-    { text: "Cancel", style: "cancel" },
-  ]);
 }
 
 function VoiceWaveform({ active }: { active: boolean }) {
@@ -119,25 +91,11 @@ export function VoiceCallOverlay({
   error,
   elapsedSeconds,
   audioRoute,
-  activeAudioDeviceId,
-  audioOptions,
   audioLoading = false,
-  onSelectAudioDevice,
-  onRefreshAudioOptions,
+  onSelectAudioRoute,
   onEndCall,
   onRetry,
 }: VoiceCallOverlayProps) {
-  const activeOption = audioOptions.find(
-    (option) => option.deviceId === activeAudioDeviceId
-  );
-  const audioRouteLabel =
-    activeOption?.label ?? VOICE_AUDIO_ROUTE_LABELS[audioRoute];
-  const audioIcon =
-    activeOption?.route === "earpiece" || audioRoute === "earpiece"
-      ? "📞"
-      : activeOption?.route === "other"
-        ? "🎧"
-        : "🔊";
   const waveActive =
     state === "listening" ||
     state === "user-speaking" ||
@@ -148,6 +106,10 @@ export function VoiceCallOverlay({
 
   const showTimer = state !== "idle" && state !== "error";
   const canChangeAudio = !error;
+  const isSpeaker = audioRoute === "speaker";
+  const audioLabel = isSpeaker ? "Speaker" : "Phone";
+  const toggleRoute = (): VoiceAudioRouteId =>
+    isSpeaker ? "earpiece" : "speaker";
 
   return (
     <Modal visible animationType="fade" transparent onRequestClose={onEndCall}>
@@ -184,30 +146,22 @@ export function VoiceCallOverlay({
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {canChangeAudio ? (
-            <Pressable
-              onPress={() => {
-                if (audioOptions.length === 0) {
-                  onRefreshAudioOptions();
+            <View style={styles.audioSection}>
+              <CircularActionButton
+                label={audioLabel}
+                backgroundColor={IOS_BLUE}
+                active
+                disabled={audioLoading}
+                onPress={() => onSelectAudioRoute(toggleRoute())}
+                icon={
+                  isSpeaker ? (
+                    <SpeakerIcon color="#fff" />
+                  ) : (
+                    <PhoneIcon color="#fff" />
+                  )
                 }
-                showAudioRoutePicker(
-                  audioOptions,
-                  activeAudioDeviceId,
-                  onSelectAudioDevice
-                );
-              }}
-              disabled={audioLoading}
-              accessibilityRole="button"
-              accessibilityLabel={`Audio output: ${audioRouteLabel}. Tap to change.`}
-              style={({ pressed }) => [
-                styles.audioButton,
-                audioLoading && styles.audioButtonDisabled,
-                pressed && !audioLoading && styles.buttonPressed,
-              ]}
-            >
-              <Text style={styles.audioButtonIcon}>{audioIcon}</Text>
-              <Text style={styles.audioButtonLabel}>{audioRouteLabel}</Text>
-              <Text style={styles.audioButtonHint}>Tap to change audio</Text>
-            </Pressable>
+              />
+            </View>
           ) : null}
 
           <View style={styles.actions}>
@@ -313,34 +267,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
-  audioButton: {
-    marginTop: 20,
-    minWidth: 140,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.border,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+  audioSection: {
+    marginTop: 24,
+    width: "100%",
     alignItems: "center",
-  },
-  audioButtonDisabled: {
-    opacity: 0.5,
-  },
-  audioButtonIcon: {
-    fontSize: 22,
-    marginBottom: 4,
-  },
-  audioButtonLabel: {
-    color: theme.text,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  audioButtonHint: {
-    marginTop: 2,
-    color: theme.textMuted,
-    fontSize: 11,
-    fontWeight: "500",
   },
   actions: {
     marginTop: 28,

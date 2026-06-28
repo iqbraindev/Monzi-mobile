@@ -17,8 +17,8 @@ import { ProfileMenu } from "@/components/ProfileMenu";
 import { VoiceCallProvider } from "@/contexts/VoiceCallContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAgents } from "@/hooks/use-agents";
-import { theme } from "@/lib/config";
 import { formatApiError } from "@/lib/chat-utils";
+import { theme } from "@/lib/config";
 import type { Agent } from "@/lib/types";
 
 export default function AgentsScreen() {
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 30,
     paddingBottom: 12,
   },
   centered: {

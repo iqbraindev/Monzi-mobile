@@ -117,11 +117,8 @@ export function NativeVoiceCallProvider({ children }: PropsWithChildren) {
           error={voice.error}
           elapsedSeconds={elapsedSeconds}
           audioRoute={audio.route}
-          activeAudioDeviceId={audio.activeDeviceId}
-          audioOptions={audio.options}
           audioLoading={audio.loading}
-          onSelectAudioDevice={(deviceId) => void audio.selectDevice(deviceId)}
-          onRefreshAudioOptions={() => void audio.refreshOptions()}
+          onSelectAudioRoute={(route) => void audio.selectRoute(route)}
           onEndCall={endCall}
           onRetry={() =>
             void voice.beginVoiceSession(

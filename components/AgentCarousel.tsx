@@ -11,8 +11,13 @@ import {
   type ListRenderItem,
 } from "react-native";
 
+import { ChatIcon, PhoneIcon } from "@/components/ActionIcons";
 import { AgentAvatarFull } from "@/components/AgentAvatarFull";
 import { AgentConnectedApps } from "@/components/AgentConnectedApps";
+import {
+  CircularActionButton,
+  CircularActionRow,
+} from "@/components/CircularActionButton";
 import { useVoiceCall } from "@/contexts/VoiceCallContext";
 import { theme } from "@/lib/config";
 import type { Agent } from "@/lib/types";
@@ -21,7 +26,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SLIDE_WIDTH = SCREEN_WIDTH;
 const AVATAR_HEIGHT = Math.min(320, Math.round(SCREEN_WIDTH * 0.72));
 
-const CALL_GREEN = "#70D46B";
+const IOS_GREEN = "#34C759";
+const IOS_BLUE = "#0A84FF";
 
 interface AgentCarouselProps {
   agents: Agent[];
@@ -67,31 +73,25 @@ function AgentSlide({
         </Text>
       </View>
 
-      <View style={styles.actions}>
-        <Pressable
-          onPress={onCall}
+      <CircularActionRow>
+        <CircularActionButton
+          label="Call"
+          backgroundColor={IOS_GREEN}
+          active
           disabled={!callEnabled}
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.callButton,
-            !callEnabled && styles.actionButtonDisabled,
-            pressed && callEnabled && styles.actionButtonPressed,
-          ]}
-        >
-          <Text style={styles.callButtonText}>Call</Text>
-        </Pressable>
-
-        <Pressable
+          onPress={onCall}
+          icon={
+            <PhoneIcon color={callEnabled ? "#fff" : theme.textMuted} />
+          }
+        />
+        <CircularActionButton
+          label="Chat"
+          backgroundColor={IOS_BLUE}
+          active
           onPress={onChat}
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.chatButton,
-            pressed && styles.actionButtonPressed,
-          ]}
-        >
-          <Text style={styles.chatButtonText}>Chat</Text>
-        </Pressable>
-      </View>
+          icon={<ChatIcon />}
+        />
+      </CircularActionRow>
 
       {!callEnabled ? (
         <Text style={styles.callHint}>Voice not enabled for this agent</Text>
@@ -235,41 +235,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textTransform: "capitalize",
     textAlign: "center",
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-    width: "100%",
-    maxWidth: 320,
-  },
-  actionButton: {
-    flex: 1,
-    minHeight: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionButtonPressed: {
-    opacity: 0.88,
-  },
-  actionButtonDisabled: {
-    opacity: 0.45,
-  },
-  callButton: {
-    backgroundColor: CALL_GREEN,
-  },
-  callButtonText: {
-    color: "#0f1a0f",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  chatButton: {
-    backgroundColor: theme.primary,
-  },
-  chatButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
   },
   callHint: {
     marginTop: 12,
