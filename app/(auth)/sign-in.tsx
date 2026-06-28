@@ -88,10 +88,11 @@ export default function SignInScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.content}>
-            <MonziLogo height={MONZI_LOGO_PROMO_HEIGHT} />
+            <View style={styles.logoWrap}>
+              <MonziLogo height={MONZI_LOGO_PROMO_HEIGHT} />
+            </View>
 
-            <Text style={styles.title} >Sign in</Text>
-
+            <Text style={styles.title} >AI multi-agent assistants</Text>
             <View style={styles.card}>
               <AuthSocialButtons
                 disabled={isBusy}
@@ -148,8 +149,21 @@ export default function SignInScreen() {
             </View>
 
             <Text style={styles.footer}>
-              Use the same account as the Monzi web app.
+              Use the same account as the Monzi web app.{" "}
+
             </Text>
+            <Text
+                style={{ color: theme.primary, marginTop: 10, textDecorationLine: "none", textAlign: "center" }}
+                onPress={() => {
+                  // Safe cross-platform link opening
+                  import("react-native").then(({ Linking }) =>
+                    Linking.openURL("https://monzi.ai")
+                  );
+                }}
+              >
+                Visit monzi.ai
+              </Text>
+    
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -175,11 +189,16 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     gap: 0,
   },
+  logoWrap: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: 28,
+  },
   title: {
-    marginTop: 60,
+    marginTop: 40,
     color: theme.text,
-    fontSize: 32,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "300",
     letterSpacing: -0.5,
     textAlign: "center",
     width: "100%",
