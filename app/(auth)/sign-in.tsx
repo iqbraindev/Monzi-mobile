@@ -1,11 +1,13 @@
-import { useOAuth, useSignIn } from "@clerk/clerk-expo";
-import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
+import { useSignIn } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,37 +15,25 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AuthBackground } from "@/components/auth/AuthBackground";
+import {
+  AuthSocialButtons,
+  type OAuthStrategy,
+} from "@/components/auth/AuthSocialButtons";
+import { MONZI_LOGO_PROMO_HEIGHT, MonziLogo } from "@/components/MonziLogo";
 import { theme } from "@/lib/config";
 
-WebBrowser.maybeCompleteAuthSession();
-
-const REDIRECT_URL = Linking.createURL("oauth-callback");
-
 export default function SignInScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
   const { signIn, setActive, isLoaded } = useSignIn();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [pendingOAuth, setPendingOAuth] = useState<OAuthStrategy | null>(null);
 
-  const handleGoogleSignIn = useCallback(async () => {
-    setBusy(true);
-    try {
-      const { createdSessionId, setActive: activate } = await startOAuthFlow({
-        redirectUrl: REDIRECT_URL,
-      });
-
-      if (createdSessionId && activate) {
-        await activate({ session: createdSessionId });
-      }
-    } catch (err) {
-      Alert.alert("Sign in failed", err instanceof Error ? err.message : "Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }, [startOAuthFlow]);
+  const isBusy = emailBusy || pendingOAuth !== null;
 
   const handleEmailSignIn = useCallback(async () => {
     if (!isLoaded || !signIn) return;
@@ -54,7 +44,7 @@ export default function SignInScreen() {
       return;
     }
 
-    setBusy(true);
+    setEmailBusy(true);
     try {
       const result = await signIn.create({
         identifier: trimmedEmail,
@@ -63,144 +53,150 @@ export default function SignInScreen() {
 
       if (result.status === "complete") {
         await setActive?.({ session: result.createdSessionId });
+        router.replace("/(app)");
         return;
       }
 
       Alert.alert(
         "Sign in incomplete",
-        "Additional verification is required. Try Google sign-in or use the web app."
+        "Additional verification is required. Try a social sign-in or use the web app."
       );
     } catch (err) {
       Alert.alert("Sign in failed", err instanceof Error ? err.message : "Please try again.");
     } finally {
-      setBusy(false);
+      setEmailBusy(false);
     }
-  }, [email, isLoaded, password, setActive, signIn]);
+  }, [email, isLoaded, password, router, setActive, signIn]);
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text style={styles.logo}>Monzi</Text>
-        <Text style={styles.subtitle}>Chat with your AI agents on the go.</Text>
-      </View>
+    <View style={styles.root}>
+      <AuthBackground />
 
-      <View style={styles.card}>
-        <Pressable
-          onPress={() => void handleGoogleSignIn()}
-          disabled={busy}
-          style={({ pressed }) => [
-            styles.googleButton,
-            pressed && styles.buttonPressed,
-            busy && styles.buttonDisabled,
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: insets.top + 32,
+              paddingBottom: insets.bottom + 24,
+            },
           ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {busy ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          )}
-        </Pressable>
+          <View style={styles.content}>
+            <MonziLogo height={MONZI_LOGO_PROMO_HEIGHT} />
 
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or email</Text>
-          <View style={styles.dividerLine} />
-        </View>
+            <Text style={styles.title} >Sign in</Text>
 
-        <TextInput
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email"
-          placeholderTextColor={theme.textMuted}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          editable={!busy}
-        />
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          placeholderTextColor={theme.textMuted}
-          secureTextEntry
-          textContentType="password"
-          editable={!busy}
-        />
+            <View style={styles.card}>
+              <AuthSocialButtons
+                disabled={isBusy}
+                pendingStrategy={pendingOAuth}
+                onPendingChange={setPendingOAuth}
+              />
 
-        <Pressable
-          onPress={() => void handleEmailSignIn()}
-          disabled={busy}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.buttonPressed,
-            busy && styles.buttonDisabled,
-          ]}
-        >
-          <Text style={styles.primaryButtonText}>Sign in</Text>
-        </Pressable>
-      </View>
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
 
-      <Text style={styles.hint}>
-        Scan the QR with the Expo Go app. Use the same account as the Monzi web app.
-      </Text>
+              <View style={styles.form}>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor={theme.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  editable={!isBusy}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Password"
+                  placeholderTextColor={theme.textMuted}
+                  secureTextEntry
+                  textContentType="password"
+                  editable={!isBusy}
+                />
+
+                <Pressable
+                  onPress={() => void handleEmailSignIn()}
+                  disabled={isBusy}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    pressed && styles.buttonPressed,
+                    isBusy && styles.buttonDisabled,
+                  ]}
+                >
+                  {emailBusy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Sign in</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+
+            <Text style={styles.footer}>
+              Use the same account as the Monzi web app.
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: theme.background,
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
-  header: {
-    paddingBottom: 24,
-    gap: 8,
+  content: {
+    width: "100%",
+    maxWidth: 420,
+    alignSelf: "center",
+    gap: 0,
   },
-  logo: {
+  title: {
+    marginTop: 60,
     color: theme.text,
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: "700",
     letterSpacing: -0.5,
-  },
-  subtitle: {
-    color: theme.textMuted,
-    fontSize: 16,
-    lineHeight: 22,
+    textAlign: "center",
+    width: "100%",
   },
   card: {
-    gap: 12,
-    padding: 20,
+    marginTop: 28,
+    gap: 20,
+    padding: 24,
     borderRadius: 20,
-    backgroundColor: theme.surface,
+    backgroundColor: "rgba(26, 26, 34, 0.92)",
     borderWidth: 1,
     borderColor: theme.border,
-  },
-  googleButton: {
-    minHeight: 48,
-    borderRadius: 12,
-    backgroundColor: "#4285F4",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  googleButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginVertical: 4,
+    gap: 12,
   },
   dividerLine: {
     flex: 1,
@@ -209,12 +205,16 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: theme.textMuted,
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  form: {
+    gap: 12,
   },
   input: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     backgroundColor: theme.surfaceAlt,
     color: theme.text,
     fontSize: 16,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   primaryButton: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: 12,
     backgroundColor: theme.primary,
     alignItems: "center",
@@ -235,12 +235,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   buttonPressed: {
-    opacity: 0.85,
+    opacity: 0.88,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  hint: {
+  footer: {
     marginTop: 20,
     color: theme.textMuted,
     fontSize: 13,

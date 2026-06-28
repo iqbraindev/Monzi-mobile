@@ -8,6 +8,8 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-reanimated";
 
+import { NativeVoiceRoot } from "@/components/voice/NativeVoiceRoot";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { getClerkPublishableKey } from "@/lib/config";
 import { tokenCache } from "@/lib/token-cache";
 
@@ -40,15 +42,19 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ClerkProvider publishableKey={getClerkPublishableKey()} tokenCache={tokenCache}>
         <ClerkLoaded>
-          <QueryClientProvider client={queryClient}>
-            <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0f0f12" } }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(app)" />
-            </Stack>
-          </QueryClientProvider>
+          <NativeVoiceRoot>
+            <QueryClientProvider client={queryClient}>
+              <WorkspaceProvider>
+                <StatusBar style="light" />
+                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0f0f12" } }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(app)" />
+                </Stack>
+              </WorkspaceProvider>
+            </QueryClientProvider>
+          </NativeVoiceRoot>
         </ClerkLoaded>
       </ClerkProvider>
     </SafeAreaProvider>

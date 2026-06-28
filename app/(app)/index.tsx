@@ -1,4 +1,4 @@
-import { useAuth, useClerk, useUser } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/clerk-expo";
 import { Redirect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -12,6 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AgentCarousel } from "@/components/AgentCarousel";
+import { MonziLogo } from "@/components/MonziLogo";
+import { ProfileMenu } from "@/components/ProfileMenu";
+import { VoiceCallProvider } from "@/contexts/VoiceCallContext";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useAgents } from "@/hooks/use-agents";
 import { theme } from "@/lib/config";
 import { formatApiError } from "@/lib/chat-utils";
@@ -20,15 +24,14 @@ import type { Agent } from "@/lib/types";
 export default function AgentsScreen() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
-  const { signOut } = useClerk();
-  const { user } = useUser();
+  const { isReady: workspaceReady } = useWorkspace();
   const {
     data: agents = [],
     isLoading,
     error,
     refetch,
     isRefetching,
-  } = useAgents(isLoaded && isSignedIn);
+  } = useAgents(isLoaded && isSignedIn && workspaceReady);
 
   const openChat = (agent: Agent) => {
     router.push(`/(app)/chat/${agent.id}`);
@@ -49,26 +52,16 @@ export default function AgentsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.greeting}>
-            Hello{user?.firstName ? `, ${user.firstName}` : ""}
-          </Text>
-          <Text style={styles.headerSubtitle}>Swipe to choose an agent</Text>
-        </View>
-        <Pressable
-          onPress={() => void signOut()}
-          style={styles.signOutButton}
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-        >
-          <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
+        <MonziLogo />
+        <ProfileMenu />
       </View>
 
-      {isLoading ? (
+      {!workspaceReady || isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator color={theme.primary} size="large" />
-          <Text style={styles.loadingText}>Loading your agents…</Text>
+          <Text style={styles.loadingText}>
+            {!workspaceReady ? "Loading workspace…" : "Loading your agents…"}
+          </Text>
         </View>
       ) : error ? (
         <ScrollView
@@ -95,7 +88,9 @@ export default function AgentsScreen() {
           </Text>
         </View>
       ) : (
-        <AgentCarousel agents={agents} onChat={openChat} />
+        <VoiceCallProvider>
+          <AgentCarousel agents={agents} onChat={openChat} />
+        </VoiceCallProvider>
       )}
     </SafeAreaView>
   );
@@ -115,38 +110,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 8,
-    gap: 12,
-  },
-  headerText: {
-    flex: 1,
-    gap: 4,
-  },
-  greeting: {
-    color: theme.text,
-    fontSize: 22,
-    fontWeight: "700",
-  },
-  headerSubtitle: {
-    color: theme.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  signOutButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: theme.surface,
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  signOutText: {
-    color: theme.textMuted,
-    fontSize: 13,
-    fontWeight: "600",
+    paddingBottom: 12,
   },
   centered: {
     flex: 1,

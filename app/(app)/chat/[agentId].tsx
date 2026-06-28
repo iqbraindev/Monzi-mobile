@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 
 import { AgentChatScreen } from "@/components/AgentChatScreen";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useApiClient } from "@/lib/api";
 import { theme } from "@/lib/config";
 import { formatApiError } from "@/lib/chat-utils";
@@ -11,15 +12,16 @@ import type { Agent } from "@/lib/types";
 export default function ChatScreen() {
   const { agentId } = useLocalSearchParams<{ agentId: string }>();
   const { apiFetch } = useApiClient();
+  const { activeWorkspaceId, isReady: workspaceReady } = useWorkspace();
 
   const { data: agent, isLoading, error } = useQuery({
-    queryKey: ["agent", agentId],
+    queryKey: ["agent", activeWorkspaceId, agentId],
     queryFn: async () => {
       const res = await apiFetch(`/api/agents/${agentId}`);
       const data = (await res.json()) as { agent: Agent };
       return data.agent;
     },
-    enabled: Boolean(agentId),
+    enabled: Boolean(agentId) && workspaceReady && Boolean(activeWorkspaceId),
   });
 
   if (isLoading) {

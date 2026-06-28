@@ -281,11 +281,11 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   glowLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
   },
   glowRoot: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   haloSvg: {
     position: "absolute",

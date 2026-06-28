@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from "react";
 import {
-  Alert,
   Dimensions,
   FlatList,
   NativeScrollEvent,
@@ -13,6 +12,8 @@ import {
 } from "react-native";
 
 import { AgentAvatarFull } from "@/components/AgentAvatarFull";
+import { AgentConnectedApps } from "@/components/AgentConnectedApps";
+import { useVoiceCall } from "@/contexts/VoiceCallContext";
 import { theme } from "@/lib/config";
 import type { Agent } from "@/lib/types";
 
@@ -46,14 +47,17 @@ function AgentSlide({
 
   return (
     <View style={styles.slide}>
-      <View style={styles.avatarStage}>
-        <AgentAvatarFull
-          assetId={agent.avatarAssetId}
-          color={agent.color || theme.primary}
-          height={AVATAR_HEIGHT}
-          neon
-          breathe={isActive}
-        />
+      <View style={styles.avatarRow}>
+        <View style={styles.avatarStage}>
+          <AgentAvatarFull
+            assetId={agent.avatarAssetId}
+            color={agent.color || theme.primary}
+            height={AVATAR_HEIGHT}
+            neon
+            breathe={isActive}
+          />
+        </View>
+        <AgentConnectedApps apps={agent.apps} variant="rail" logoSize={28} />
       </View>
 
       <View style={styles.meta}>
@@ -99,6 +103,7 @@ function AgentSlide({
 export function AgentCarousel({ agents, onChat }: AgentCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList<Agent>>(null);
+  const { startCall } = useVoiceCall();
 
   const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / SLIDE_WIDTH);
@@ -109,24 +114,9 @@ export function AgentCarousel({ agents, onChat }: AgentCarouselProps) {
 
   const handleCall = useCallback(
     (agent: Agent) => {
-      if (!canCallAgent(agent)) {
-        Alert.alert(
-          "Voice unavailable",
-          "This agent doesn't have voice enabled. Use Chat to message them."
-        );
-        return;
-      }
-
-      Alert.alert(
-        "Voice calls coming soon",
-        "Live voice calls aren't on mobile yet. Opening text chat for now.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Open chat", onPress: () => onChat(agent) },
-        ]
-      );
+      startCall(agent);
     },
-    [onChat]
+    [startCall]
   );
 
   const renderItem: ListRenderItem<Agent> = useCallback(
@@ -213,11 +203,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  avatarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: SLIDE_WIDTH - 32,
+    marginBottom: 8,
+  },
   avatarStage: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "flex-end",
     minHeight: AVATAR_HEIGHT + 16,
-    marginBottom: 8,
     backgroundColor: "transparent",
   },
   meta: {
