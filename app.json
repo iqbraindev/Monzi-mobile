@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Monzi-Mobile",
-    "slug": "Monzi-Mobile",
+    "slug": "monzi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,7 +24,9 @@
         "android.permission.INTERNET",
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.WAKE_LOCK",
-        "android.permission.BLUETOOTH"
+        "android.permission.BLUETOOTH",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
@@ -56,6 +58,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c6d4be84-ceae-46cc-90f2-e70e250f7d51"
+      }
+    },
+    "owner": "monzis-organization"
   }
 }
